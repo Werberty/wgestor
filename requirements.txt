@@ -3,6 +3,8 @@ coverage==7.16.1
 Django==6.1.1
 django-environ==0.14.0
 djangorestframework==3.18.1
+factory_boy==3.3.3
+Faker==40.40.0
 iniconfig==2.3.0
 packaging==26.3
 pluggy==1.6.0
