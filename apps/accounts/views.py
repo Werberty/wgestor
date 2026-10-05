@@ -7,7 +7,7 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
-from apps.accounts.serializers import PasswordResetRequestSerializer
+from apps.accounts.serializers import PasswordResetConfirmSerializer, PasswordResetRequestSerializer
 from apps.accounts.models import User
 from config import settings
 
@@ -36,4 +36,21 @@ class PasswordResetRequestAPI(generics.GenericAPIView):
         return Response(
             {"detail": "Se o e-mail existir, enviaremos instruções."},
             status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmAPI(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data['user']
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return Response(
+            {'detail': 'Senha redefinida com sucesso!'},
+            status=status.HTTP_200_OK
         )
