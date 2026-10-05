@@ -30,3 +30,23 @@ docker compose exec web python manage.py migrate
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
+
+## Testes automatizados
+
+Com os containers em execução, rode a suíte completa:
+
+```bash
+docker compose exec web pytest -q
+```
+
+Para executar apenas os testes de login e logout:
+
+```bash
+docker compose exec web pytest apps/accounts/tests.py -v
+```
+
+Os testes usam um banco separado, criado e removido pelo Django. O usuário
+do PostgreSQL configurado no `.env` precisa ter permissão para criar bancos.
+São cobertos login válido, credenciais inválidas ou ausentes, usuário inativo,
+reutilização de token, logout, revogação de acesso e preservação dos tokens
+de outros usuários.
