@@ -9,7 +9,7 @@ from django.core import mail
 @pytest.mark.django_db
 def test_password_reset_request_send_email(client, user):
     response = client.post(
-        '/accounts/api/password-reset',
+        '/api/accounts/password-reset',
         data={'email': user.email}
     )
     
@@ -21,7 +21,7 @@ def test_password_reset_request_send_email(client, user):
 @pytest.mark.django_db
 def test_password_reset_request_does_not_reveal_non_existent_emails(client):
     response = client.post(
-        '/accounts/api/password-reset',
+        '/api/accounts/password-reset',
         data={'email': 'non.existent@email.com'}
     )
 
@@ -36,7 +36,7 @@ def test_password_reset_confirm_changes_successfuly(client, user):
 
     new_password = '12345678'
     response = client.post(
-        '/accounts/api/password-reset/confirm',
+        '/api/accounts/password-reset/confirm',
         data={
             'uidb64': uid, 'token': token, 'new_password': new_password
         }
@@ -54,7 +54,7 @@ def test_password_reset_confirm_invalid_token(client, user, token):
 
     new_password = '12345678'
     response = client.post(
-        '/accounts/api/password-reset/confirm',
+        '/api/accounts/password-reset/confirm',
         data={
             'uidb64': uid, 'token': token, 'new_password': new_password
         }
@@ -70,7 +70,7 @@ def test_password_reset_confirm_invalid_link(client):
 
     new_password = '12345678'
     response = client.post(
-        '/accounts/api/password-reset/confirm',
+        '/api/accounts/password-reset/confirm',
         data={
             'uidb64': uid, 'token': token, 'new_password': new_password
         }
