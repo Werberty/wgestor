@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.encoding import force_str
+from django.contrib.auth import authenticate
 from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 
 from apps.accounts.models import User
 
@@ -27,4 +28,27 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError('Token inválido ou expirado')
 
         attrs['user'] = user
+        return attrs
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        user = authenticate(
+            request=self.context.get("request"),
+            username=attrs["username"],
+            password=attrs["password"],
+        )
+
+        if user is None or not user.is_active:
+            raise serializers.ValidationError(
+                "Usuário ou senha inválidos."
+            )
+
+        attrs["user"] = user
         return attrs

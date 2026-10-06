@@ -4,6 +4,9 @@ from rest_framework.test import APIClient
 from apps.accounts.factories import UserFactory
 
 
+PASSWORD = "Senha-segura-123!"
+
+
 @pytest.fixture
 def client():
     return APIClient()
@@ -11,7 +14,7 @@ def client():
 
 @pytest.fixture
 def user():
-    return UserFactory.create()
+    return UserFactory(password=PASSWORD)
 
 
 @pytest.fixture(autouse=True)
