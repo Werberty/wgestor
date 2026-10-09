@@ -33,8 +33,9 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:8000')
 
 # Application definition
 
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'apps.core',
     'apps.accounts',
     'rest_framework.authtoken',
@@ -119,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-BR'
 
 TIME_ZONE = 'UTC'
 
@@ -139,9 +141,20 @@ STATIC_URL = 'static/'
 
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend'),
+        'OPTIONS': {
+            'host': env('EMAIL_HOST', default='localhost'),
+            'port': env.int('EMAIL_PORT', default=1025),
+            'use_tls': env.bool('EMAIL_USE_TLS', default=False),
+            'use_ssl': env.bool('EMAIL_USE_SSL', default=False),
+            'username': env('EMAIL_USERNAME'),
+            'password': env('EMAIL_PASSWORD'),
+        }
     },
 }
+
+
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -151,3 +164,4 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+

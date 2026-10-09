@@ -1,31 +1,86 @@
 import pytest
+from http import HTTPStatus
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.core import mail
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.test import APIClient
 
-from .choices import RoleChoice
+from apps.accounts.choices import RoleChoice
+from apps.accounts.conftest import PASSWORD
 
 
 pytestmark = pytest.mark.django_db
 
-PASSWORD = "Senha-segura-123!"
 
-
-@pytest.fixture
-def client():
-    return APIClient()
-
-
-@pytest.fixture
-def user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="vendedor",
-        password=PASSWORD,
-        email="vendedor@example.com",
-        name="Vendedor de teste",
-        role=RoleChoice.SELLER,
+def test_password_reset_request_send_email(client, user):
+    response = client.post(
+        '/api/accounts/password-reset',
+        data={'email': user.email}
     )
+    
+    assert response.status_code == HTTPStatus.OK
+    assert len(mail.outbox) == 1
+    assert user.email in mail.outbox[0].to
+
+
+def test_password_reset_request_does_not_reveal_non_existent_emails(client):
+    response = client.post(
+        '/api/accounts/password-reset',
+        data={'email': 'non.existent@email.com'}
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert len(mail.outbox) == 0
+
+
+def test_password_reset_confirm_changes_successfuly(client, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = PasswordResetTokenGenerator().make_token(user)
+
+    new_password = '12345678'
+    response = client.post(
+        '/api/accounts/password-reset/confirm',
+        data={
+            'uidb64': uid, 'token': token, 'new_password': new_password
+        }
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    user.refresh_from_db()
+    assert user.check_password(new_password)
+
+
+@pytest.mark.parametrize("token", ["token_invalido", "", "abc123789"])
+def test_password_reset_confirm_invalid_token(client, user, token):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+    new_password = '12345678'
+    response = client.post(
+        '/api/accounts/password-reset/confirm',
+        data={
+            'uidb64': uid, 'token': token, 'new_password': new_password
+        }
+    )
+    
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_password_reset_confirm_invalid_link(client):
+    uid = 'uid_invalid'
+    token = 'token_invalid'
+
+    new_password = '12345678'
+    response = client.post(
+        '/api/accounts/password-reset/confirm',
+        data={
+            'uidb64': uid, 'token': token, 'new_password': new_password
+        }
+    )
+    
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 def test_login_returns_token_and_user_data(client, user):
@@ -44,7 +99,6 @@ def test_login_returns_token_and_user_data(client, user):
             "email": user.email,
         },
     }
-
     client.credentials(HTTP_AUTHORIZATION=f"Token {response.data['token']}")
     protected_response = client.get(reverse("accounts:me"))
     assert protected_response.status_code == status.HTTP_200_OK
