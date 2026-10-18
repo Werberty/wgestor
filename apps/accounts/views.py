@@ -17,7 +17,8 @@ from .serializers import LoginSerializer
 from apps.accounts.serializers import PasswordResetConfirmSerializer, PasswordResetRequestSerializer
 from apps.accounts.models import User
 from config import settings
-
+from django.db import transaction
+from .serializers import PasswordChangeSerializer
 
 class PasswordResetRequestAPI(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
@@ -121,3 +122,25 @@ class MeView(APIView):
                 "email": user.email,
             }
         )
+
+class PasswordChangeApi(generics.GenericAPIView):
+    serializer_class = PasswordChangeSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save(update_fields=['password'])
+
+            Token.objects.filter(user=user).delete()
+
+
+            return Response(
+                {'detail': 'Senha alterada com sucesso. Faça login novamente'},
+                status=status.HTTP_200_OK,
+            )

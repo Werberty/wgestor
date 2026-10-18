@@ -3,6 +3,8 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import authenticate
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from apps.accounts.models import User
 
@@ -51,4 +53,36 @@ class LoginSerializer(serializers.Serializer):
             )
 
         attrs["user"] = user
+        return attrs
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+
+        if not user.check_password(attrs['current_password']):
+            raise serializers.ValidationError({
+                'current_password': 'Senha atual incorreta.',
+            })
+        if attrs['current_password'] == attrs['new_password']:
+            raise serializers.ValidationError({
+                'new_password': "A nova senha deve ser diferente da atual.",
+            })
+        try:
+            validate_password(attrs['new_password'], user=user)
+
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({
+                'new_password': exc.messages,
+            })
+
         return attrs
